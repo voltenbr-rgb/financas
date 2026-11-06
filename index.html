@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Volten Dashboard</title>
+<script>try{if(localStorage.getItem('tema')==='light')document.documentElement.classList.remove('dark')}catch(e){}</script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={darkMode:'class'}</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style type="text/tailwindcss">
+@layer components{
+  .card{@apply rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-cyan-500/20 dark:bg-slate-900/70 dark:shadow-[0_0_22px_-10px_rgba(34,211,238,.45)]}
+  .btn{@apply inline-flex items-center justify-center gap-1 rounded-xl px-3 py-2 text-sm font-semibold transition active:scale-95}
+  .btn-primary{@apply bg-cyan-500 text-slate-950 hover:bg-cyan-400 dark:shadow-[0_0_14px_rgba(34,211,238,.5)]}
+  .btn-ghost{@apply border border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800}
+  .btn-green{@apply bg-emerald-500 text-slate-950 hover:bg-emerald-400}
+  .btn-red{@apply bg-rose-500 text-white hover:bg-rose-400}
+  .input{@apply w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100}
+  .tab{@apply whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-800}
+  .lbl{@apply mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400}
+}
+</style>
+<style>
+.tab.active{background:#22d3ee!important;color:#020617!important;box-shadow:0 0 14px rgba(34,211,238,.5)}
+:focus-visible{outline:2px solid #22d3ee;outline-offset:2px}
+</style>
+</head>
+<body class="min-h-screen bg-slate-100 text-slate-800 antialiased dark:bg-slate-950 dark:text-slate-100">
+
+<header class="sticky top-0 z-30 border-b border-slate-200 bg-white/80 backdrop-blur dark:border-cyan-500/20 dark:bg-slate-950/80">
+  <div class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
+    <h1 class="text-lg font-extrabold tracking-tight">
+      <span class="text-cyan-500 dark:drop-shadow-[0_0_8px_rgba(34,211,238,.8)]">⚡ Volten</span>
+      <span class="text-fuchsia-500 dark:drop-shadow-[0_0_8px_rgba(217,70,239,.7)]">Dashboard</span>
+    </h1>
+    <button id="themeBtn" class="btn btn-ghost" title="Alternar tema claro/escuro" aria-label="Alternar tema">☀️</button>
+  </div>
+  <nav class="mx-auto flex max-w-6xl gap-2 overflow-x-auto px-4 pb-3" aria-label="Seções">
+    <button class="tab" data-tab="clientes">👥 Clientes</button>
+    <button class="tab" data-tab="calendario">📅 Calendário</button>
+    <button class="tab" data-tab="financas">💰 Finanças</button>
+  </nav>
+</header>
+
+<main class="mx-auto max-w-6xl px-4 py-6">
+
+  <!-- ========== CLIENTES ========== -->
+  <section id="tab-clientes" class="tabpane space-y-6">
+    <div class="card space-y-3">
+      <h2 class="font-bold">Colar dados do teste</h2>
+      <p class="text-xs text-slate-500 dark:text-slate-400">O texto entre ( ) é ignorado. O conteúdo entre [ ] tem prioridade. Você pode colar vários testes de uma vez.</p>
+      <textarea id="raw" rows="8" class="input font-mono" placeholder="Usuário: [teste123]&#10;Senha: [abc123]&#10;URL: [http://dns.exemplo.com]&#10;Criado em: [06/11/2026 10:00]&#10;Vencimento: [06/11/2026 14:00]"></textarea>
+      <div class="flex flex-wrap gap-2">
+        <button id="btnExtrair" class="btn btn-primary">🔍 Extrair dados</button>
+        <button id="btnSalvarTodos" class="btn btn-green hidden">💾 Salvar todos</button>
+        <button id="btnLimpar" class="btn btn-ghost">🧹 Limpar</button>
+      </div>
+    </div>
+
+    <div>
+      <h2 class="mb-2 font-bold">Extraídos <span id="cntParsed" class="text-sm font-normal text-slate-500"></span></h2>
+      <div id="parsed" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
+    </div>
+
+    <div>
+      <div class="mb-2 flex items-center justify-between">
+        <h2 class="font-bold">Salvos no Banco Volten <span id="cntSaved" class="text-sm font-normal text-slate-500"></span></h2>
+        <button id="btnReload" class="btn btn-ghost" title="Atualizar lista">🔄 Atualizar</button>
+      </div>
+      <div id="saved" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
+    </div>
+  </section>
+
+  <!-- ========== CALENDÁRIO ========== -->
+  <section id="tab-calendario" class="tabpane hidden space-y-4">
+    <div class="card space-y-3">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <button id="calPrev" class="btn btn-ghost" aria-label="Anterior">◀</button>
+          <button id="calHoje" class="btn btn-ghost">Hoje</button>
+          <button id="calNext" class="btn btn-ghost" aria-label="Próximo">▶</button>
+        </div>
+        <h2 id="calTitle" class="text-lg font-bold"></h2>
+        <div class="flex gap-1">
+          <button id="calMes" class="btn btn-ghost">Mês</button>
+          <button id="calSem" class="btn btn-ghost">Semana</button>
+        </div>
+      </div>
+      <div id="calGrid" class="grid grid-cols-7 gap-1"></div>
+      <p class="text-xs text-slate-500 dark:text-slate-400">Fúcsia: extraído e ainda não salvo. Verde, amarelo e vermelho: clientes salvos (ok, vence em até 3 dias, vencido).</p>
+    </div>
+    <div id="calDetail" class="space-y-2"></div>
+  </section>
+
+  <!-- ========== FINANÇAS ========== -->
+  <section id="tab-financas" class="tabpane hidden space-y-6">
+    <div class="grid gap-4 sm:grid-cols-3">
+      <div class="card"><p class="text-xs text-slate-500 dark:text-slate-400">Total de entradas</p><p id="stEnt" class="text-2xl font-extrabold text-emerald-500">R$ 0,00</p></div>
+      <div class="card"><p class="text-xs text-slate-500 dark:text-slate-400">Total de saídas</p><p id="stSai" class="text-2xl font-extrabold text-rose-500">R$ 0,00</p></div>
+      <div class="card"><p class="text-xs text-slate-500 dark:text-slate-400">Saldo final</p><p id="stSaldo" class="text-2xl font-extrabold text-cyan-500">R$ 0,00</p></div>
+    </div>
+
+    <div class="grid gap-6 lg:grid-cols-3">
+      <form id="finForm" class="card space-y-3 lg:col-span-1">
+        <h2 class="font-bold">Novo lançamento</h2>
+        <div><label class="lbl" for="fDesc">Descrição</label><input id="fDesc" class="input" required maxlength="120" placeholder="Ex.: Conta de luz"></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="lbl" for="fValor">Valor (R$)</label><input id="fValor" type="number" step="0.01" min="0.01" class="input" required></div>
+          <div><label class="lbl" for="fTipo">Tipo</label>
+            <select id="fTipo" class="input"><option value="saida">Saída (despesa)</option><option value="entrada">Entrada (receita)</option></select></div>
+        </div>
+        <div><label class="lbl" for="fCat">Categoria</label>
+          <select id="fCat" class="input">
+            <option>Salário</option><option>Outras receitas</option><option>Luz</option><option>Água</option><option>Internet</option>
+            <option>Cartão de crédito</option><option>Mercado</option><option>Moradia</option><option>Transporte</option>
+            <option>Saúde</option><option>Lazer</option><option>Outros</option>
+          </select></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="lbl" for="fData">Data de vencimento</label><input id="fData" type="date" class="input" required></div>
+          <div><label class="lbl" for="fStatus">Status</label>
+            <select id="fStatus" class="input"><option value="pendente">Pendente</option><option value="pago">Pago</option></select></div>
+        </div>
+        <button class="btn btn-primary w-full" type="submit">➕ Salvar lançamento</button>
+      </form>
+
+      <div class="space-y-4 lg:col-span-2">
+        <div class="card grid gap-3 sm:grid-cols-2">
+          <div><label class="lbl" for="fMes">Mês</label><input id="fMes" type="month" class="input"></div>
+          <div><label class="lbl" for="fFiltroStatus">Status</label>
+            <select id="fFiltroStatus" class="input"><option value="">Todos</option><option value="pago">Pago</option><option value="pendente">Pendente</option></select></div>
+        </div>
+        <div class="grid gap-4 md:grid-cols-2">
+          <div class="card"><h3 class="mb-2 text-sm font-bold">Despesas por categoria</h3><div class="relative h-64"><canvas id="cvCat"></canvas></div></div>
+          <div class="card"><h3 class="mb-2 text-sm font-bold">Evolução mensal</h3><div class="relative h-64"><canvas id="cvEvo"></canvas></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="mb-3 font-bold">Lançamentos <span id="cntFin" class="text-sm font-normal text-slate-500"></span></h2>
+      <div id="finList" class="divide-y divide-slate-200 dark:divide-slate-800"></div>
+    </div>
+  </section>
+</main>
+
+<script src="js/app.js"></script>
+</body>
+</html>
